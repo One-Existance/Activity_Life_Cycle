@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Activity Lifecycle App — Technical Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f0f2f5;
+      color: #222;
+      line-height: 1.7;
+    }
+
+    /* ── Cover page ── */
+    .cover {
+      background: linear-gradient(135deg, #1565C0 0%, #42A5F5 100%);
+      color: white;
+      text-align: center;
+      padding: 80px 40px 60px;
+    }
+    .cover h1 { font-size: 2.6rem; margin-bottom: 12px; }
+    .cover .subtitle { font-size: 1.15rem; opacity: .88; margin-bottom: 32px; }
+    .cover .meta { font-size: 0.95rem; opacity: .75; }
+    .cover .badge {
+      display: inline-block;
+      background: rgba(255,255,255,.2);
+      border: 1px solid rgba(255,255,255,.4);
+      border-radius: 20px;
+      padding: 6px 18px;
+      margin: 6px 4px;
+      font-size: 0.85rem;
+    }
+
+    /* ── Main content ── */
+    .container { max-width: 960px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    /* ── Section headings ── */
+    h2 {
+      font-size: 1.55rem;
+      color: #1565C0;
+      border-left: 5px solid #1565C0;
+      padding-left: 14px;
+      margin: 48px 0 18px;
+    }
+    h3 {
+      font-size: 1.15rem;
+      color: #333;
+      margin: 28px 0 10px;
+    }
+    h4 {
+      font-size: 1rem;
+      color: #555;
+      margin: 18px 0 6px;
+    }
+
+    p { margin-bottom: 12px; }
+
+    /* ── Info / tip boxes ── */
+    .info-box {
+      background: #E3F2FD;
+      border-left: 4px solid #1565C0;
+      border-radius: 6px;
+      padding: 14px 18px;
+      margin: 16px 0;
+    }
+    .info-box.green  { background: #E8F5E9; border-color: #2E7D32; }
+    .info-box.orange { background: #FFF3E0; border-color: #E65100; }
+    .info-box.red    { background: #FFEBEE; border-color: #C62828; }
+
+    /* ── File cards ── */
+    .file-card {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      margin: 24px 0;
+      overflow: hidden;
+    }
+    .file-card .card-header {
+      background: #263238;
+      color: #fff;
+      padding: 10px 18px;
+      font-family: monospace;
+      font-size: 0.9rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .file-card .card-header .lang-badge {
+      background: #1565C0;
+      border-radius: 4px;
+      padding: 2px 8px;
+      font-size: 0.75rem;
+    }
+    .file-card .card-header .lang-badge.xml  { background: #E65100; }
+    .file-card .card-header .lang-badge.java { background: #1565C0; }
+
+    /* ── Code blocks ── */
+    pre {
+      margin: 0;
+      padding: 18px;
+      overflow-x: auto;
+      background: #1E272E;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.6;
+    }
+    code { color: #CFD8DC; }
+
+    /* syntax colours */
+    .kw  { color: #80CBC4; }   /* keywords */
+    .cl  { color: #FFD54F; }   /* class names */
+    .mt  { color: #90CAF9; }   /* method names */
+    .st  { color: #A5D6A7; }   /* strings */
+    .cm  { color: #78909C; font-style: italic; } /* comments */
+    .an  { color: #CE93D8; }   /* annotations */
+    .ty  { color: #EF9A9A; }   /* types */
+    .at  { color: #FFB74D; }   /* XML attributes */
+    .vl  { color: #A5D6A7; }   /* attribute values */
+    .tg  { color: #80CBC4; }   /* XML tags */
+    .nu  { color: #F48FB1; }   /* numbers */
+
+    /* ── Explanation blocks (alternating) ── */
+    .explain {
+      background: white;
+      border-radius: 8px;
+      padding: 18px 22px;
+      margin: 10px 0 24px;
+      box-shadow: 0 1px 6px rgba(0,0,0,.06);
+    }
+
+    /* ── Lifecycle diagram ── */
+    .lifecycle-diagram {
+      background: white;
+      border-radius: 10px;
+      padding: 30px;
+      margin: 20px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+      text-align: center;
+    }
+    .lc-row { display: flex; justify-content: center; align-items: center; gap: 0; flex-wrap: wrap; margin: 6px 0; }
+    .lc-box {
+      display: inline-block;
+      padding: 8px 18px;
+      border-radius: 6px;
+      font-weight: bold;
+      font-size: 0.88rem;
+      font-family: monospace;
+      min-width: 130px;
+    }
+    .lc-create  { background: #C8E6C9; color: #1B5E20; border: 2px solid #2E7D32; }
+    .lc-start   { background: #BBDEFB; color: #0D47A1; border: 2px solid #1565C0; }
+    .lc-resume  { background: #B2EBF2; color: #006064; border: 2px solid #00838F; }
+    .lc-pause   { background: #FFE0B2; color: #BF360C; border: 2px solid #E65100; }
+    .lc-stop    { background: #FFCDD2; color: #B71C1C; border: 2px solid #C62828; }
+    .lc-restart { background: #E1BEE7; color: #4A148C; border: 2px solid #6A1B9A; }
+    .lc-destroy { background: #CFD8DC; color: #263238; border: 2px solid #455A64; }
+    .lc-arrow { font-size: 1.4rem; color: #888; padding: 0 6px; }
+    .lc-caption { font-size: 0.8rem; color: #888; margin-top: 6px; }
+
+    /* ── Method table ── */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 1px 6px rgba(0,0,0,.07); }
+    th { background: #1565C0; color: white; padding: 10px 14px; text-align: left; font-size: 0.9rem; }
+    td { padding: 10px 14px; font-size: 0.88rem; border-bottom: 1px solid #EEE; vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+    tr:nth-child(even) td { background: #F8F9FA; }
+    .method-name { font-family: monospace; font-weight: bold; color: #1565C0; }
+
+    /* ── Project structure tree ── */
+    .tree {
+      background: #263238;
+      color: #CFD8DC;
+      font-family: monospace;
+      font-size: 0.85rem;
+      padding: 20px 24px;
+      border-radius: 8px;
+      line-height: 1.9;
+    }
+    .tree .folder { color: #FFD54F; }
+    .tree .file   { color: #A5D6A7; }
+    .tree .new    { color: #80CBC4; font-weight: bold; }
+
+    /* ── Flow scenario boxes ── */
+    .scenario {
+      background: white;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 12px 0;
+      box-shadow: 0 1px 6px rgba(0,0,0,.07);
+      border-left: 4px solid #1565C0;
+    }
+    .scenario h4 { color: #1565C0; margin-bottom: 8px; }
+    .flow-steps { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-top: 10px; }
+    .step {
+      background: #E3F2FD;
+      border-radius: 4px;
+      padding: 4px 10px;
+      font-family: monospace;
+      font-size: 0.8rem;
+      font-weight: bold;
+      color: #1565C0;
+    }
+    .step.orange { background: #FFF3E0; color: #E65100; }
+    .step.red    { background: #FFEBEE; color: #C62828; }
+    .step.purple { background: #F3E5F5; color: #6A1B9A; }
+    .arrow-sm { color: #888; font-size: 1rem; }
+
+    /* ── Footer ── */
+    footer {
+      background: #263238;
+      color: #90A4AE;
+      text-align: center;
+      padding: 28px 20px;
+      font-size: 0.85rem;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      background: white;
+      border-radius: 10px;
+      padding: 24px 28px;
+      margin: 32px 0;
+      box-shadow: 0 2px 10px rgba(0,0,0,.08);
+    }
+    .toc h3 { color: #1565C0; margin-bottom: 14px; }
+    .toc ol { padding-left: 22px; }
+    .toc li { margin: 6px 0; }
+    .toc a { color: #1565C0; text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════ COVER ═══════════════════════════════ -->
+<div class="cover">
+  <h1>Android Activity Lifecycle</h1>
+  <p class="subtitle">A barebones demonstration app with Toast notifications and interactive controls</p>
+  <div style="margin: 24px 0;">
+    <span class="badge">Android Studio</span>
+    <span class="badge">Java</span>
+    <span class="badge">XML Layouts</span>
+    <span class="badge">Toast API</span>
+    <span class="badge">Intent Navigation</span>
+  </div>
+  <p class="meta">Technical Report &nbsp;|&nbsp; June 2026</p>
+</div>
+
+<!-- ═══════════════════════════════ BODY ════════════════════════════════ -->
+<div class="container">
+
+  <!-- TABLE OF CONTENTS -->
+  <div class="toc">
+    <h3>Table of Contents</h3>
+    <ol>
+      <li><a href="#overview">Project Overview</a></li>
+      <li><a href="#structure">Project Structure</a></li>
+      <li><a href="#lifecycle">What is the Activity Lifecycle?</a></li>
+      <li><a href="#manifest">AndroidManifest.xml — Explained</a></li>
+      <li><a href="#strings">strings.xml — Explained</a></li>
+      <li><a href="#layout-main">activity_main.xml — Explained</a></li>
+      <li><a href="#layout-second">activity_second.xml — Explained</a></li>
+      <li><a href="#mainactivity">MainActivity.java — Explained</a></li>
+      <li><a href="#secondactivity">SecondActivity.java — Explained</a></li>
+      <li><a href="#flows">User Interaction Flows</a></li>
+      <li><a href="#summary">Summary</a></li>
+    </ol>
+  </div>
+
+  <!-- ── 1. OVERVIEW ── -->
+  <h2 id="overview">1. Project Overview</h2>
+  <p>
+    This Android application was built to <strong>visually demonstrate every stage of the Android Activity Lifecycle</strong>
+    in real time. Instead of just reading about <code>onCreate</code>, <code>onStart</code>, and friends in a textbook,
+    a student can launch this app and <em>watch</em> each method fire — through on-screen Toast pop-ups and a
+    persistent scrollable event log.
+  </p>
+  <p>
+    The app contains <strong>two Activities</strong>: a main screen with three interactive buttons,
+    and a second screen that the user can navigate to and from. Switching between them triggers the
+    pause/stop/restart chain, making all seven lifecycle callbacks observable without having to press
+    the device's Home or Back buttons manually.
+  </p>
+
+  <div class="info-box green">
+    <strong>Key teaching goals of this app:</strong><br>
+    &bull; Show all 7 lifecycle methods firing in order via Toast and a live log.<br>
+    &bull; Let the student <em>trigger</em> lifecycle transitions themselves using buttons.<br>
+    &bull; Demonstrate the difference between pausing (partial hide) and stopping (full hide).<br>
+    &bull; Show how onRestart works when returning to a stopped Activity.
+  </div>
+
+  <!-- ── 2. PROJECT STRUCTURE ── -->
+  <h2 id="structure">2. Project Structure</h2>
+  <p>Below are the files that were created or modified to build this app:</p>
+
+  <div class="tree">
+    <span class="folder">ActivityLifeCycle/</span><br>
+    &nbsp;&nbsp;<span class="folder">app/src/main/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="new">AndroidManifest.xml</span> &nbsp;&nbsp;&larr; registers both Activities<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">java/com/example/activitylifecycle/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="new">MainActivity.java</span> &nbsp;&nbsp;&larr; all 7 lifecycle callbacks + buttons<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="new">SecondActivity.java</span> &nbsp;&larr; simple second screen<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">res/layout/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="new">activity_main.xml</span> &nbsp;&nbsp;&larr; 3 buttons + scrollable log<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="new">activity_second.xml</span> &nbsp;&larr; second screen layout<br>
+    &nbsp;&nbsp;&nbsp;&nbsp;<span class="folder">res/values/</span><br>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span class="new">strings.xml</span> &nbsp;&nbsp;&larr; all user-facing text in one place<br>
+  </div>
+
+  <!-- ── 3. LIFECYCLE THEORY ── -->
+  <h2 id="lifecycle">3. What is the Android Activity Lifecycle?</h2>
+  <p>
+    An <strong>Activity</strong> is a single screen in an Android app. Android is a multi-tasking operating
+    system — the user can receive calls, switch apps, rotate the screen, and press Back at any time.
+    To manage all this, Android calls specific methods on your Activity at defined moments.
+    These methods together form the <strong>Activity Lifecycle</strong>.
+  </p>
+  <p>
+    As a developer you <em>override</em> these methods to run your own code at the right moment —
+    saving data before the app hides, releasing resources when the app closes, refreshing content
+    when the app comes back to the foreground, and so on.
+  </p>
+
+  <div class="lifecycle-diagram">
+    <strong style="font-size:1rem; color:#1565C0; display:block; margin-bottom:18px;">Complete Lifecycle Flow</strong>
+
+    <div class="lc-row">
+      <span class="lc-box lc-create">onCreate()</span>
+      <span class="lc-arrow">→</span>
+      <span class="lc-box lc-start">onStart()</span>
+      <span class="lc-arrow">→</span>
+      <span class="lc-box lc-resume">onResume()</span>
+    </div>
+    <div style="margin: 8px 0; color:#888; font-size: 1.6rem;">↕</div>
+    <div class="lc-row">
+      <span class="lc-box lc-pause">onPause()</span>
+      <span class="lc-arrow">→</span>
+      <span class="lc-box lc-stop">onStop()</span>
+      <span class="lc-arrow">→</span>
+      <span class="lc-box lc-destroy">onDestroy()</span>
+    </div>
+    <div style="margin: 8px 0; color:#888; font-size: 1.6rem;">↑</div>
+    <div class="lc-row">
+      <span class="lc-box lc-restart">onRestart()</span>
+      <span class="lc-arrow" style="visibility:hidden;">→</span>
+      <span style="color:#888; font-size:0.85rem;">(goes back to onStart)</span>
+    </div>
+    <p class="lc-caption">Arrow flows left-to-right on launch, right-to-left on exit.</p>
+  </div>
+
+  <table>
+    <tr>
+      <th>Method</th>
+      <th>When it is called</th>
+      <th>Typical use</th>
+    </tr>
+    <tr>
+      <td class="method-name">onCreate()</td>
+      <td>The very first time the Activity is created.</td>
+      <td>Set the layout, find views, set up button listeners.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onStart()</td>
+      <td>Activity becomes visible to the user (but not yet interactive).</td>
+      <td>Start animations or load data that must be visible.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onResume()</td>
+      <td>Activity is in the foreground and fully interactive.</td>
+      <td>Resume paused animations, start camera, register sensors.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onPause()</td>
+      <td>Another activity comes partially in front (dialog, new screen starting).</td>
+      <td>Pause animations, release camera, save draft data.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onStop()</td>
+      <td>Activity is completely hidden (Home pressed, or another full-screen activity opened).</td>
+      <td>Save persistent data, unregister broadcast receivers.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onRestart()</td>
+      <td>Activity was stopped and the user is coming back to it.</td>
+      <td>Refresh stale data, re-subscribe to data sources.</td>
+    </tr>
+    <tr>
+      <td class="method-name">onDestroy()</td>
+      <td>Activity is being permanently removed — Back pressed, or finish() called.</td>
+      <td>Release all resources, close database connections.</td>
+    </tr>
+  </table>
+
+  <!-- ── 4. ANDROIDMANIFEST ── -->
+  <h2 id="manifest">4. AndroidManifest.xml — Explained</h2>
+  <p>
+    The <code>AndroidManifest.xml</code> is the <strong>configuration file for the entire app</strong>.
+    Android reads it when it installs the app to understand what components exist (Activities, Services, etc.)
+    and how to launch them. Every Activity you create <em>must</em> be declared here or Android will crash
+    with an <code>ActivityNotFoundException</code>.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge xml">XML</span>
+      app/src/main/AndroidManifest.xml
+    </div>
+    <pre><code><span class="tg">&lt;?xml version=</span><span class="st">"1.0"</span><span class="tg"> encoding=</span><span class="st">"utf-8"</span><span class="tg">?&gt;</span>
+<span class="tg">&lt;manifest</span> <span class="at">xmlns:android=</span><span class="st">"http://schemas.android.com/apk/res/android"</span>
+    <span class="at">xmlns:tools=</span><span class="st">"http://schemas.android.com/tools"</span><span class="tg">&gt;</span>
+
+    <span class="tg">&lt;application</span>
+        <span class="at">android:allowBackup=</span><span class="st">"true"</span>
+        <span class="at">android:icon=</span><span class="st">"@mipmap/ic_launcher"</span>
+        <span class="at">android:label=</span><span class="st">"@string/app_name"</span>
+        <span class="at">android:theme=</span><span class="st">"@style/Theme.ActivityLifeCycle"</span><span class="tg">&gt;</span>
+
+        <span class="tg">&lt;activity</span>
+            <span class="at">android:name=</span><span class="st">".MainActivity"</span>
+            <span class="at">android:exported=</span><span class="st">"true"</span><span class="tg">&gt;</span>
+            <span class="tg">&lt;intent-filter&gt;</span>
+                <span class="tg">&lt;action</span> <span class="at">android:name=</span><span class="st">"android.intent.action.MAIN"</span> <span class="tg">/&gt;</span>
+                <span class="tg">&lt;category</span> <span class="at">android:name=</span><span class="st">"android.intent.category.LAUNCHER"</span> <span class="tg">/&gt;</span>
+            <span class="tg">&lt;/intent-filter&gt;</span>
+        <span class="tg">&lt;/activity&gt;</span>
+
+        <span class="tg">&lt;activity</span>
+            <span class="at">android:name=</span><span class="st">".SecondActivity"</span>
+            <span class="at">android:exported=</span><span class="st">"false"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;/application&gt;</span>
+<span class="tg">&lt;/manifest&gt;</span></code></pre>
+  </div>
+
+  <div class="explain">
+    <h4><code>&lt;application&gt;</code></h4>
+    <p>Wraps all app-level settings. <code>android:label</code> sets the app name shown on the launcher icon. <code>android:theme</code> applies a visual style to every Activity by default.</p>
+
+    <h4><code>&lt;activity android:name=".MainActivity" android:exported="true"&gt;</code></h4>
+    <p>Tells Android that <code>MainActivity</code> exists. The dot (<code>.</code>) before the name means it is in the root package (<code>com.example.activitylifecycle</code>). <code>exported="true"</code> means the system (launcher) is allowed to start it from outside the app.</p>
+
+    <h4><code>&lt;intent-filter&gt;</code></h4>
+    <p>This block marks <code>MainActivity</code> as the <strong>entry point</strong> of the app. <code>action.MAIN</code> = this is the main action; <code>category.LAUNCHER</code> = show it in the app drawer with an icon. Without this filter no launcher icon would appear.</p>
+
+    <h4><code>&lt;activity android:name=".SecondActivity" android:exported="false" /&gt;</code></h4>
+    <p>Registers <code>SecondActivity</code>. <code>exported="false"</code> means only our own app can open it — no other app or the launcher can start it directly. It has no intent-filter because we start it manually with an <code>Intent</code>.</p>
+  </div>
+
+  <!-- ── 5. STRINGS ── -->
+  <h2 id="strings">5. strings.xml — Explained</h2>
+  <p>
+    Instead of writing text directly inside layout files, Android best practice is to keep all
+    user-facing strings in <code>res/values/strings.xml</code>. Layout files then reference them
+    with <code>@string/name</code> and Java code uses <code>getString(R.string.name)</code>.
+    This also makes translation straightforward — you only touch one file.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge xml">XML</span>
+      app/src/main/res/values/strings.xml
+    </div>
+    <pre><code><span class="tg">&lt;resources&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"app_name"</span><span class="tg">&gt;</span>Activity Life Cycle<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"btn_open_second"</span><span class="tg">&gt;</span>Open Second Activity<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"btn_finish"</span><span class="tg">&gt;</span>Finish Activity (onDestroy)<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"btn_clear_log"</span><span class="tg">&gt;</span>Clear Log<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"label_lifecycle_log"</span><span class="tg">&gt;</span>Lifecycle Log:<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"log_placeholder"</span><span class="tg">&gt;</span>(events will appear here)\n<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"title_second_activity"</span><span class="tg">&gt;</span>Second Activity<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"btn_go_back"</span><span class="tg">&gt;</span>Go Back<span class="tg">&lt;/string&gt;</span>
+    <span class="tg">&lt;string</span> <span class="at">name=</span><span class="st">"toast_second_opened"</span><span class="tg">&gt;</span>SecondActivity opened — MainActivity is stopped<span class="tg">&lt;/string&gt;</span>
+<span class="tg">&lt;/resources&gt;</span></code></pre>
+  </div>
+
+  <div class="explain">
+    <h4><code>&lt;string name="..."&gt;</code></h4>
+    <p>Each entry pairs a key (the <code>name</code> attribute) with a value (the text inside the tag). The build system generates an integer ID for each name in the auto-generated <code>R</code> class, so <code>R.string.btn_open_second</code> is how Java code refers to it.</p>
+
+    <h4>Referencing in XML layouts — <code>@string/name</code></h4>
+    <p>Inside any layout XML file, writing <code>android:text="@string/btn_open_second"</code> tells Android to look up that key at runtime and use its value. This means you can change the button label by editing strings.xml alone — no touching the layout file.</p>
+
+    <h4>Referencing in Java — <code>getString(R.string.name)</code></h4>
+    <p><code>getString()</code> is a method available on any <code>Context</code> (which <code>Activity</code> is). It looks up the string by its integer ID and returns it as a plain Java <code>String</code>. Used in <code>SecondActivity</code> to pass the Toast message.</p>
+
+    <h4>Why not hardcode strings in the layout?</h4>
+    <p>Android Lint flags hardcoded strings as warnings. More practically, if the same label appears in two places and you need to change it, you edit one line in strings.xml rather than hunting through multiple layout files.</p>
+  </div>
+
+  <!-- ── 6. LAYOUT MAIN ── -->
+  <h2 id="layout-main">6. activity_main.xml — Explained</h2>
+  <p>
+    This is the <strong>visual blueprint</strong> for the main screen. Android inflates (reads and renders)
+    this file when <code>setContentView(R.layout.activity_main)</code> is called inside <code>onCreate()</code>.
+    Every widget here becomes a Java object that our code can talk to.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge xml">XML</span>
+      app/src/main/res/layout/activity_main.xml
+    </div>
+    <pre><code><span class="tg">&lt;LinearLayout</span> <span class="at">xmlns:android=</span><span class="st">"http://schemas.android.com/apk/res/android"</span>
+    <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+    <span class="at">android:layout_height=</span><span class="st">"match_parent"</span>
+    <span class="at">android:orientation=</span><span class="st">"vertical"</span>
+    <span class="at">android:padding=</span><span class="st">"16dp"</span><span class="tg">&gt;</span>
+
+    <span class="tg">&lt;Button</span>
+        <span class="at">android:id=</span><span class="st">"@+id/btnOpenSecond"</span>
+        <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/btn_open_second"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;Button</span>
+        <span class="at">android:id=</span><span class="st">"@+id/btnFinish"</span>
+        <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/btn_finish"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;Button</span>
+        <span class="at">android:id=</span><span class="st">"@+id/btnClearLog"</span>
+        <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/btn_clear_log"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;TextView</span>
+        <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/label_lifecycle_log"</span>
+        <span class="at">android:paddingTop=</span><span class="st">"8dp"</span>
+        <span class="at">android:paddingBottom=</span><span class="st">"4dp"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;ScrollView</span>
+        <span class="at">android:id=</span><span class="st">"@+id/scrollView"</span>
+        <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+        <span class="at">android:layout_height=</span><span class="st">"0dp"</span>
+        <span class="at">android:layout_weight=</span><span class="st">"1"</span><span class="tg">&gt;</span>
+
+        <span class="tg">&lt;TextView</span>
+            <span class="at">android:id=</span><span class="st">"@+id/tvLog"</span>
+            <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+            <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+            <span class="at">android:fontFamily=</span><span class="st">"monospace"</span>
+            <span class="at">android:text=</span><span class="st">"@string/log_placeholder"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;/ScrollView&gt;</span>
+
+<span class="tg">&lt;/LinearLayout&gt;</span></code></pre>
+  </div>
+
+  <div class="explain">
+    <h4><code>LinearLayout</code> — the root container</h4>
+    <p>A <code>LinearLayout</code> stacks its children one after another. With <code>orientation="vertical"</code> they stack top-to-bottom. <code>match_parent</code> on both dimensions means it fills the whole screen. <code>padding="16dp"</code> adds breathing room around the edges.</p>
+
+    <h4><code>android:id="@+id/btnOpenSecond"</code></h4>
+    <p>The <code>@+id/</code> prefix tells Android to <strong>create a new ID resource</strong> with this name in the <code>R</code> class. Java code later uses <code>R.id.btnOpenSecond</code> to find and get a reference to this exact button.</p>
+
+    <h4><code>android:text="@string/btn_open_second"</code></h4>
+    <p>Rather than hardcoding the label text directly, this references the string defined in <code>strings.xml</code>. Android resolves the value at runtime. All three buttons and the log label use this same pattern.</p>
+
+    <h4><code>ScrollView</code> with <code>layout_height="0dp"</code> and <code>layout_weight="1"</code></h4>
+    <p>Setting <code>height="0dp"</code> and <code>weight="1"</code> tells LinearLayout to give this view <em>all remaining vertical space</em> after the buttons above have taken their fixed height. The ScrollView then scrolls its content if it grows taller than the available space.</p>
+
+    <h4><code>TextView id="tvLog"</code> inside ScrollView</h4>
+    <p>A ScrollView can only have <strong>one direct child</strong>. That child is a <code>TextView</code> whose text we append to from Java whenever a lifecycle method fires. <code>fontFamily="monospace"</code> gives the log a clean, readable appearance.</p>
+  </div>
+
+  <!-- ── 7. LAYOUT SECOND ── -->
+  <h2 id="layout-second">7. activity_second.xml — Explained</h2>
+  <p>
+    A minimal layout for the second screen. Its only job is to show the user where they are and
+    give them a button to go back, which triggers the <code>onRestart → onStart → onResume</code>
+    chain on <code>MainActivity</code>.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge xml">XML</span>
+      app/src/main/res/layout/activity_second.xml
+    </div>
+    <pre><code><span class="tg">&lt;LinearLayout</span> <span class="at">xmlns:android=</span><span class="st">"http://schemas.android.com/apk/res/android"</span>
+    <span class="at">android:layout_width=</span><span class="st">"match_parent"</span>
+    <span class="at">android:layout_height=</span><span class="st">"match_parent"</span>
+    <span class="at">android:orientation=</span><span class="st">"vertical"</span>
+    <span class="at">android:gravity=</span><span class="st">"center"</span>
+    <span class="at">android:padding=</span><span class="st">"24dp"</span><span class="tg">&gt;</span>
+
+    <span class="tg">&lt;TextView</span>
+        <span class="at">android:layout_width=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/title_second_activity"</span>
+        <span class="at">android:textSize=</span><span class="st">"18sp"</span>
+        <span class="at">android:layout_marginBottom=</span><span class="st">"16dp"</span> <span class="tg">/&gt;</span>
+
+    <span class="tg">&lt;Button</span>
+        <span class="at">android:id=</span><span class="st">"@+id/btnGoBack"</span>
+        <span class="at">android:layout_width=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:layout_height=</span><span class="st">"wrap_content"</span>
+        <span class="at">android:text=</span><span class="st">"@string/btn_go_back"</span> <span class="tg">/&gt;</span>
+
+<span class="tg">&lt;/LinearLayout&gt;</span></code></pre>
+  </div>
+
+  <div class="explain">
+    <h4><code>android:gravity="center"</code> on the LinearLayout</h4>
+    <p>Centers all child views both horizontally and vertically, so the title and button sit in the middle of the screen. This makes it immediately clear to the user that they have navigated away from the main screen.</p>
+
+    <h4><code>android:text="@string/title_second_activity"</code></h4>
+    <p>Same <code>@string/</code> reference pattern used in the main layout — the actual text value lives in <code>strings.xml</code>, not here.</p>
+  </div>
+
+  <!-- ── 8. MAINACTIVITY ── -->
+  <h2 id="mainactivity">8. MainActivity.java — Explained</h2>
+  <p>
+    This is the brain of the app. It extends <code>AppCompatActivity</code>, overrides all seven
+    lifecycle methods, sets up the three buttons, and maintains the on-screen log.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge java">JAVA</span>
+      app/src/main/java/com/example/activitylifecycle/MainActivity.java
+    </div>
+    <pre><code><span class="kw">package</span> com.example.activitylifecycle;
+
+<span class="kw">import</span> android.content.<span class="cl">Intent</span>;
+<span class="kw">import</span> android.os.<span class="cl">Bundle</span>;
+<span class="kw">import</span> android.widget.<span class="cl">Button</span>;
+<span class="kw">import</span> android.widget.<span class="cl">ScrollView</span>;
+<span class="kw">import</span> android.widget.<span class="cl">TextView</span>;
+<span class="kw">import</span> android.widget.<span class="cl">Toast</span>;
+<span class="kw">import</span> androidx.appcompat.app.<span class="cl">AppCompatActivity</span>;
+
+<span class="kw">public class</span> <span class="cl">MainActivity</span> <span class="kw">extends</span> <span class="cl">AppCompatActivity</span> {
+
+    <span class="kw">private</span> <span class="cl">TextView</span> tvLog;
+    <span class="kw">private</span> <span class="cl">ScrollView</span> scrollView;
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onCreate</span>(<span class="cl">Bundle</span> savedInstanceState) {
+        <span class="kw">super</span>.<span class="mt">onCreate</span>(savedInstanceState);
+        <span class="mt">setContentView</span>(R.layout.activity_main);
+
+        tvLog      = <span class="mt">findViewById</span>(R.id.tvLog);
+        scrollView = <span class="mt">findViewById</span>(R.id.scrollView);
+
+        <span class="cl">Button</span> btnOpenSecond = <span class="mt">findViewById</span>(R.id.btnOpenSecond);
+        <span class="cl">Button</span> btnFinish     = <span class="mt">findViewById</span>(R.id.btnFinish);
+        <span class="cl">Button</span> btnClearLog   = <span class="mt">findViewById</span>(R.id.btnClearLog);
+
+        btnOpenSecond.<span class="mt">setOnClickListener</span>(v -&gt;
+                <span class="mt">startActivity</span>(<span class="kw">new</span> <span class="cl">Intent</span>(<span class="kw">this</span>, <span class="cl">SecondActivity</span>.<span class="kw">class</span>)));
+
+        btnFinish.<span class="mt">setOnClickListener</span>(v -&gt; <span class="mt">finish</span>());
+
+        btnClearLog.<span class="mt">setOnClickListener</span>(v -&gt;
+                tvLog.<span class="mt">setText</span>(<span class="st">"(log cleared)\n"</span>));
+
+        <span class="mt">log</span>(<span class="st">"onCreate"</span>, <span class="st">"Activity is being created"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onCreate: Activity created"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onStart</span>() {
+        <span class="kw">super</span>.<span class="mt">onStart</span>();
+        <span class="mt">log</span>(<span class="st">"onStart"</span>, <span class="st">"Activity is becoming visible"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onStart: Activity visible"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onResume</span>() {
+        <span class="kw">super</span>.<span class="mt">onResume</span>();
+        <span class="mt">log</span>(<span class="st">"onResume"</span>, <span class="st">"Activity is in the foreground"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onResume: Activity in foreground"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onPause</span>() {
+        <span class="kw">super</span>.<span class="mt">onPause</span>();
+        <span class="mt">log</span>(<span class="st">"onPause"</span>, <span class="st">"Activity is partially hidden"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onPause: Activity partially hidden"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onStop</span>() {
+        <span class="kw">super</span>.<span class="mt">onStop</span>();
+        <span class="mt">log</span>(<span class="st">"onStop"</span>, <span class="st">"Activity is no longer visible"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onStop: Activity not visible"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onRestart</span>() {
+        <span class="kw">super</span>.<span class="mt">onRestart</span>();
+        <span class="mt">log</span>(<span class="st">"onRestart"</span>, <span class="st">"Activity is restarting after being stopped"</span>);
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onRestart: Activity restarting"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onDestroy</span>() {
+        <span class="kw">super</span>.<span class="mt">onDestroy</span>();
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onDestroy: Activity is destroyed"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+    }
+
+    <span class="kw">private void</span> <span class="mt">log</span>(<span class="cl">String</span> method, <span class="cl">String</span> description) {
+        <span class="cl">String</span> entry = <span class="st">"["</span> + method + <span class="st">"]\n  → "</span> + description + <span class="st">"\n\n"</span>;
+        tvLog.<span class="mt">append</span>(entry);
+        scrollView.<span class="mt">post</span>(() -&gt; scrollView.<span class="mt">fullScroll</span>(<span class="cl">ScrollView</span>.FOCUS_DOWN));
+    }
+}</code></pre>
+  </div>
+
+  <div class="explain">
+    <h4>Line 1 — <code>package com.example.activitylifecycle;</code></h4>
+    <p>Declares which package this class belongs to. The package name is the unique identifier for the app on a device — no two installed apps can share the same package name. It must match the folder structure under <code>src/main/java/</code>.</p>
+
+    <h4>Lines 3–9 — Import statements</h4>
+    <p>Java requires you to <em>import</em> any class that lives outside your own file before you can use it. Key imports here:</p>
+    <ul style="margin: 8px 0 8px 20px;">
+      <li><code>Intent</code> — the message object used to open SecondActivity.</li>
+      <li><code>Bundle</code> — the data container Android passes to <code>onCreate</code>, holding saved state if the app was recreated.</li>
+      <li><code>Button</code>, <code>ScrollView</code>, <code>TextView</code> — UI widget classes from <code>android.widget</code>.</li>
+      <li><code>Toast</code> — the class that displays floating pop-up messages.</li>
+      <li><code>AppCompatActivity</code> — the modern base class for Activities; provides backward-compatible toolbar and theme support.</li>
+    </ul>
+
+    <h4>Line 11 — <code>public class MainActivity extends AppCompatActivity</code></h4>
+    <p><code>extends AppCompatActivity</code> means MainActivity <em>inherits</em> all the behaviour Android needs — it is already a fully functional Activity. We only override specific methods to add our own logic on top. Without <code>extends AppCompatActivity</code>, Android would not know how to manage this class as a screen.</p>
+
+    <h4>Lines 13–14 — Instance fields</h4>
+    <p><code>tvLog</code> and <code>scrollView</code> are declared as <strong>class-level fields</strong> (not inside a method) because multiple lifecycle methods need to access them. If they were declared inside <code>onCreate</code> they would be destroyed when <code>onCreate</code> returns and would be unreachable in <code>onStart</code>, <code>onResume</code>, etc.</p>
+
+    <h4>Line 17 — <code>@Override</code></h4>
+    <p>This annotation tells the compiler: "I am intentionally replacing a method that my parent class (<code>AppCompatActivity</code>) already has." It is not required but is strongly recommended — if you misspell the method name, the compiler will warn you instead of silently creating a new, never-called method.</p>
+
+    <h4>Line 18 — <code>protected void onCreate(Bundle savedInstanceState)</code></h4>
+    <p><code>Bundle savedInstanceState</code> is the data Android saves when the Activity is temporarily destroyed (e.g., on screen rotation) and then recreated. On first launch it is <code>null</code>. We do not use it here, but always pass it to <code>super.onCreate()</code>.</p>
+
+    <h4>Line 19 — <code>super.onCreate(savedInstanceState);</code></h4>
+    <p>Always the <strong>first line</strong> in any lifecycle override. It calls the parent class's implementation, which does essential internal setup (attaching the window, restoring state, etc.). Skipping it would crash the app.</p>
+
+    <h4>Line 20 — <code>setContentView(R.layout.activity_main);</code></h4>
+    <p>Tells Android which XML layout to inflate and display as the screen. <code>R.layout.activity_main</code> is an auto-generated integer ID that maps to the file <code>res/layout/activity_main.xml</code>. This must be called before <code>findViewById</code> — otherwise the views do not exist yet.</p>
+
+    <h4>Lines 22–26 — <code>findViewById(...)</code></h4>
+    <p>Searches the inflated layout tree for a view with the given ID and returns it. We immediately cast it to the correct type (<code>TextView</code>, <code>ScrollView</code>, <code>Button</code>). This is how Java code "connects" to the widgets defined in XML.</p>
+
+    <h4>Lines 28–29 — Opening SecondActivity with an Intent</h4>
+    <p>An <code>Intent</code> is a message object that describes an action to perform. <code>new Intent(this, SecondActivity.class)</code> creates an explicit Intent: "go to SecondActivity in this app." <code>startActivity()</code> hands it to Android, which creates and displays the new Activity. This also triggers <code>onPause</code> and <code>onStop</code> on MainActivity.</p>
+
+    <h4>Line 31 — <code>finish()</code></h4>
+    <p>Programmatically tells Android to close and destroy this Activity. It is the code equivalent of pressing the Back button. Android will call <code>onPause → onStop → onDestroy</code> in sequence.</p>
+
+    <h4>Lines 33–34 — Clearing the log</h4>
+    <p><code>tvLog.setText("(log cleared)\n")</code> replaces the entire text content of the log TextView with the placeholder message. This resets the visible log without affecting any lifecycle state.</p>
+
+    <h4>Lines 40–78 — The six remaining lifecycle overrides</h4>
+    <p>Each follows the exact same pattern:</p>
+    <ol style="margin: 8px 0 8px 20px;">
+      <li>Call <code>super.onXxx()</code> first — always mandatory.</li>
+      <li>Call our private <code>log()</code> helper to append to the on-screen log.</li>
+      <li>Call <code>Toast.makeText(this, "message", Toast.LENGTH_SHORT).show()</code> to pop up a notification.</li>
+    </ol>
+    <p><strong>Note on onDestroy:</strong> We only show a Toast here (no log call) because by the time <code>onDestroy</code> fires, the Activity's view hierarchy may already be detached, making <code>tvLog.append()</code> unsafe. The Toast is queued by the system and still shows briefly.</p>
+
+    <h4>Lines 81–85 — The <code>log()</code> helper method</h4>
+    <p>A private utility method that keeps the lifecycle callbacks clean and DRY (Don't Repeat Yourself).</p>
+    <ul style="margin: 8px 0 8px 20px;">
+      <li><code>tvLog.append(entry)</code> — adds text to the end of the existing text rather than replacing it, so the log builds up over time.</li>
+      <li><code>scrollView.post(() -&gt; scrollView.fullScroll(ScrollView.FOCUS_DOWN))</code> — <code>post()</code> schedules a task on the main UI thread's message queue to run <em>after</em> the current layout pass completes. This ensures the new text has been measured and laid out before we attempt to scroll to the bottom. Without <code>post()</code> the scroll would happen before the new text is rendered and would land in the wrong position.</li>
+    </ul>
+  </div>
+
+  <div class="info-box orange">
+    <strong>Why call super.onXxx() first?</strong><br>
+    The Android framework performs critical internal work inside these methods (managing window tokens, calling fragment lifecycle methods, etc.). If you call <code>super</code> <em>after</em> your own code, that internal work hasn't happened yet when your code runs, which can cause crashes or inconsistent state. The rule: always call <code>super</code> first in <code>onCreate</code>, <code>onStart</code>, <code>onResume</code>, <code>onRestart</code>. For <code>onPause</code>, <code>onStop</code>, <code>onDestroy</code> it is also safest to call <code>super</code> first.
+  </div>
+
+  <!-- ── 9. SECONDACTIVITY ── -->
+  <h2 id="secondactivity">9. SecondActivity.java — Explained</h2>
+  <p>
+    A deliberately minimal second screen. Its purpose is purely to give MainActivity somewhere
+    to navigate <em>to</em> so that the pause/stop/restart cycle can be triggered by a button click
+    rather than relying on pressing the physical Home key.
+  </p>
+
+  <div class="file-card">
+    <div class="card-header">
+      <span class="lang-badge java">JAVA</span>
+      app/src/main/java/com/example/activitylifecycle/SecondActivity.java
+    </div>
+    <pre><code><span class="kw">package</span> com.example.activitylifecycle;
+
+<span class="kw">import</span> android.os.<span class="cl">Bundle</span>;
+<span class="kw">import</span> android.widget.<span class="cl">Button</span>;
+<span class="kw">import</span> android.widget.<span class="cl">Toast</span>;
+<span class="kw">import</span> androidx.appcompat.app.<span class="cl">AppCompatActivity</span>;
+
+<span class="kw">public class</span> <span class="cl">SecondActivity</span> <span class="kw">extends</span> <span class="cl">AppCompatActivity</span> {
+
+    <span class="an">@Override</span>
+    <span class="kw">protected void</span> <span class="mt">onCreate</span>(<span class="cl">Bundle</span> savedInstanceState) {
+        <span class="kw">super</span>.<span class="mt">onCreate</span>(savedInstanceState);
+        <span class="mt">setContentView</span>(R.layout.activity_second);
+
+        <span class="cl">Button</span> btnGoBack = <span class="mt">findViewById</span>(R.id.btnGoBack);
+        btnGoBack.<span class="mt">setOnClickListener</span>(v -&gt; <span class="mt">finish</span>());
+
+        <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>,
+            <span class="st">"SecondActivity opened — MainActivity is stopped"</span>,
+            <span class="cl">Toast</span>.LENGTH_LONG).<span class="mt">show</span>();
+    }
+}</code></pre>
+  </div>
+
+  <div class="explain">
+    <h4><code>setContentView(R.layout.activity_second)</code></h4>
+    <p>Loads and displays the blue second-screen layout. Each Activity must call this with its own layout file.</p>
+
+    <h4><code>btnGoBack.setOnClickListener(v -&gt; finish())</code></h4>
+    <p>When the user taps "Go Back", <code>finish()</code> is called on <em>SecondActivity</em>. Android destroys SecondActivity and brings MainActivity back to the foreground, triggering <code>onRestart → onStart → onResume</code> on it.</p>
+
+    <h4><code>Toast.LENGTH_LONG</code></h4>
+    <p>Compared to <code>LENGTH_SHORT</code> (≈2 seconds), <code>LENGTH_LONG</code> displays the Toast for approximately 3.5 seconds. Used here because the message is more informative and we want the user to have time to read it.</p>
+  </div>
+
+  <!-- ── 10. FLOWS ── -->
+  <h2 id="flows">10. User Interaction Flows</h2>
+  <p>Here are the exact sequences of lifecycle callbacks that fire for each action a user can take:</p>
+
+  <div class="scenario">
+    <h4>Scenario A — App launched for the first time</h4>
+    <div class="flow-steps">
+      <span class="step">onCreate</span>
+      <span class="arrow-sm">→</span>
+      <span class="step">onStart</span>
+      <span class="arrow-sm">→</span>
+      <span class="step">onResume</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.88rem; color:#555;">The Activity is created, becomes visible, then becomes fully interactive. All three fire in rapid succession.</p>
+  </div>
+
+  <div class="scenario">
+    <h4>Scenario B — "Open Second Activity" button tapped</h4>
+    <div class="flow-steps">
+      <span class="step orange">onPause</span>
+      <span class="arrow-sm">→</span>
+      <span class="step orange">onStop</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.88rem; color:#555;">MainActivity is pushed to the back stack. It pauses first (SecondActivity starts but hasn't fully appeared yet), then stops once SecondActivity is fully visible.</p>
+  </div>
+
+  <div class="scenario">
+    <h4>Scenario C — "Go Back" tapped in SecondActivity (or Back button pressed)</h4>
+    <div class="flow-steps">
+      <span class="step purple">onRestart</span>
+      <span class="arrow-sm">→</span>
+      <span class="step">onStart</span>
+      <span class="arrow-sm">→</span>
+      <span class="step">onResume</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.88rem; color:#555;"><code>onRestart</code> is unique — it only fires when an Activity is returning from a <em>stopped</em> (not destroyed) state. It signals "you were here before and you're coming back."</p>
+  </div>
+
+  <div class="scenario">
+    <h4>Scenario D — "Finish This Activity" red button tapped</h4>
+    <div class="flow-steps">
+      <span class="step orange">onPause</span>
+      <span class="arrow-sm">→</span>
+      <span class="step orange">onStop</span>
+      <span class="arrow-sm">→</span>
+      <span class="step red">onDestroy</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.88rem; color:#555;"><code>finish()</code> is called, which triggers all three teardown methods. The Activity is permanently removed from memory. If the user returns to the app now, <code>onCreate</code> fires again from scratch.</p>
+  </div>
+
+  <div class="scenario">
+    <h4>Scenario E — Home button pressed</h4>
+    <div class="flow-steps">
+      <span class="step orange">onPause</span>
+      <span class="arrow-sm">→</span>
+      <span class="step orange">onStop</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.88rem; color:#555;">The Activity is hidden but <strong>not destroyed</strong> — Android keeps it in memory in case the user returns. Re-opening the app fires Scenario C (<code>onRestart → onStart → onResume</code>).</p>
+  </div>
+
+  <!-- ── 11. SUMMARY ── -->
+  <h2 id="summary">11. Summary</h2>
+  <p>
+    This application was built using <strong>6 files</strong>, all inside an Android Studio project
+    generated with the Empty Activity template:
+  </p>
+
+  <table>
+    <tr>
+      <th>File</th>
+      <th>Role</th>
+    </tr>
+    <tr>
+      <td class="method-name">AndroidManifest.xml</td>
+      <td>Registers both Activities with the Android system. Sets MainActivity as the launcher entry point.</td>
+    </tr>
+    <tr>
+      <td class="method-name">strings.xml</td>
+      <td>Single source of truth for all user-facing text. Layouts and Java reference these by name rather than hardcoding text.</td>
+    </tr>
+    <tr>
+      <td class="method-name">activity_main.xml</td>
+      <td>3 buttons and a scrollable log panel. No styling beyond the defaults — just the widgets needed for the demo.</td>
+    </tr>
+    <tr>
+      <td class="method-name">activity_second.xml</td>
+      <td>Minimal centred layout with a title and a Go Back button.</td>
+    </tr>
+    <tr>
+      <td class="method-name">MainActivity.java</td>
+      <td>Overrides all 7 lifecycle callbacks. Each fires a Toast and appends to the log. Buttons trigger navigation and destruction.</td>
+    </tr>
+    <tr>
+      <td class="method-name">SecondActivity.java</td>
+      <td>Minimal Activity that exists solely to cause MainActivity to pause/stop and later restart when navigated away from and back.</td>
+    </tr>
+  </table>
+
+  <div class="info-box green" style="margin-top: 24px;">
+    <strong>Core Android concepts demonstrated:</strong><br>
+    &bull; <strong>Activity Lifecycle</strong> — all 7 callbacks observed in order.<br>
+    &bull; <strong>Toast</strong> — lightweight system pop-up notification.<br>
+    &bull; <strong>Intent</strong> — inter-Activity navigation message.<br>
+    &bull; <strong>findViewById</strong> — linking XML views to Java code.<br>
+    &bull; <strong>setOnClickListener with lambda</strong> — modern event handling.<br>
+    &bull; <strong>LinearLayout + layout_weight</strong> — responsive vertical layout.<br>
+    &bull; <strong>ScrollView + append()</strong> — growing, scrollable text log.
+  </div>
+
+</div>
+
+<!-- ═══════════════════════════════ FOOTER ═══════════════════════════════ -->
+<footer>
+  <p>Activity Lifecycle Demo &nbsp;|&nbsp; Android Java &nbsp;|&nbsp; June 2026</p>
+  <p style="margin-top:6px; opacity:.6;">Generated by Claude Code &nbsp;&bull;&nbsp; Anthropic</p>
+</footer>
+
+</body>
+</html>

@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Android Activity Lifecycle Report</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f4f4;
+      color: #222;
+      line-height: 1.7;
+    }
+
+    header {
+      background: #1a237e;
+      color: white;
+      padding: 48px 32px 36px;
+      text-align: center;
+    }
+    header h1 { font-size: 2rem; margin-bottom: 8px; }
+    header p  { font-size: 0.95rem; opacity: .75; }
+
+    .container { max-width: 860px; margin: 0 auto; padding: 40px 24px 80px; }
+
+    h2 {
+      font-size: 1.35rem;
+      color: #1a237e;
+      border-left: 4px solid #1a237e;
+      padding-left: 12px;
+      margin: 44px 0 16px;
+    }
+
+    h3 {
+      font-size: 1.05rem;
+      color: #333;
+      margin: 24px 0 8px;
+    }
+
+    p { margin-bottom: 12px; }
+
+    /* method cards */
+    .method-card {
+      background: white;
+      border-radius: 8px;
+      border-left: 5px solid #1a237e;
+      padding: 18px 20px;
+      margin: 14px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .method-card.start   { border-color: #2e7d32; }
+    .method-card.resume  { border-color: #00838f; }
+    .method-card.pause   { border-color: #e65100; }
+    .method-card.stop    { border-color: #c62828; }
+    .method-card.restart { border-color: #6a1b9a; }
+    .method-card.destroy { border-color: #424242; }
+
+    .method-card .method-name {
+      font-family: monospace;
+      font-size: 1rem;
+      font-weight: bold;
+      margin-bottom: 6px;
+    }
+    .method-card.create  .method-name { color: #1a237e; }
+    .method-card.start   .method-name { color: #2e7d32; }
+    .method-card.resume  .method-name { color: #00838f; }
+    .method-card.pause   .method-name { color: #e65100; }
+    .method-card.stop    .method-name { color: #c62828; }
+    .method-card.restart .method-name { color: #6a1b9a; }
+    .method-card.destroy .method-name { color: #424242; }
+
+    .method-card .trigger {
+      font-size: 0.82rem;
+      color: #777;
+      margin-bottom: 8px;
+    }
+
+    /* flow diagram */
+    .flow {
+      background: white;
+      border-radius: 8px;
+      padding: 28px 20px;
+      text-align: center;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+      margin: 16px 0;
+    }
+    .flow-row { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 4px; margin: 6px 0; }
+    .fbox {
+      font-family: monospace;
+      font-size: 0.82rem;
+      font-weight: bold;
+      padding: 6px 14px;
+      border-radius: 4px;
+      min-width: 110px;
+    }
+    .f-create  { background: #e8eaf6; color: #1a237e; }
+    .f-start   { background: #e8f5e9; color: #1b5e20; }
+    .f-resume  { background: #e0f7fa; color: #006064; }
+    .f-pause   { background: #fff3e0; color: #bf360c; }
+    .f-stop    { background: #ffebee; color: #b71c1c; }
+    .f-restart { background: #f3e5f5; color: #4a148c; }
+    .f-destroy { background: #eceff1; color: #263238; }
+    .farrow { color: #aaa; font-size: 1.1rem; padding: 0 2px; }
+
+    /* code block */
+    .code-card {
+      background: #1e272e;
+      border-radius: 8px;
+      overflow: hidden;
+      margin: 16px 0;
+    }
+    .code-card .code-header {
+      background: #263238;
+      color: #90a4ae;
+      font-family: monospace;
+      font-size: 0.8rem;
+      padding: 8px 16px;
+    }
+    pre {
+      padding: 18px;
+      overflow-x: auto;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 0.82rem;
+      line-height: 1.65;
+    }
+    code { color: #cfd8dc; }
+    .kw { color: #80cbc4; }
+    .cl { color: #ffd54f; }
+    .mt { color: #90caf9; }
+    .st { color: #a5d6a7; }
+    .an { color: #ce93d8; }
+    .cm { color: #78909c; font-style: italic; }
+
+    /* scenario */
+    .scenario {
+      background: white;
+      border-radius: 8px;
+      padding: 16px 20px;
+      margin: 12px 0;
+      box-shadow: 0 1px 4px rgba(0,0,0,.07);
+    }
+    .scenario h3 { margin-top: 0; color: #1a237e; font-size: 0.95rem; }
+    .steps { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 10px; }
+    .step {
+      font-family: monospace;
+      font-size: 0.8rem;
+      font-weight: bold;
+      padding: 4px 10px;
+      border-radius: 4px;
+    }
+    .s-create  { background: #e8eaf6; color: #1a237e; }
+    .s-start   { background: #e8f5e9; color: #1b5e20; }
+    .s-resume  { background: #e0f7fa; color: #006064; }
+    .s-pause   { background: #fff3e0; color: #bf360c; }
+    .s-stop    { background: #ffebee; color: #b71c1c; }
+    .s-restart { background: #f3e5f5; color: #4a148c; }
+    .s-destroy { background: #eceff1; color: #263238; }
+    .sarrow { color: #aaa; }
+
+    /* note box */
+    .note {
+      background: #e8eaf6;
+      border-left: 4px solid #1a237e;
+      border-radius: 6px;
+      padding: 12px 16px;
+      margin: 16px 0;
+      font-size: 0.9rem;
+    }
+
+    footer {
+      text-align: center;
+      background: #263238;
+      color: #78909c;
+      padding: 24px;
+      font-size: 0.82rem;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>Android Activity Lifecycle</h1>
+  <p>How and when Android calls each lifecycle method — with code</p>
+</header>
+
+<div class="container">
+
+  <!-- WHAT IS AN ACTIVITY -->
+  <h2>What is an Activity?</h2>
+  <p>
+    An <strong>Activity</strong> is a single screen in an Android app. Every screen the user sees
+    is an Activity — the home screen, a settings screen, a login page. Each one is a Java class
+    that extends <code>AppCompatActivity</code>.
+  </p>
+  <p>
+    Android is a multi-tasking system. At any point the user can receive a phone call, switch to
+    another app, rotate the screen, or press Back. Android needs a way to tell your Activity what
+    is happening so you can respond correctly — save data before hiding, free resources when
+    closing, refresh content when coming back. It does this by calling a fixed set of methods on
+    your Activity class at defined moments. These methods are the <strong>Activity Lifecycle</strong>.
+  </p>
+
+  <!-- FULL FLOW -->
+  <h2>The Lifecycle Flow</h2>
+
+  <div class="flow">
+    <div class="flow-row">
+      <span class="fbox f-create">onCreate()</span>
+      <span class="farrow">→</span>
+      <span class="fbox f-start">onStart()</span>
+      <span class="farrow">→</span>
+      <span class="fbox f-resume">onResume()</span>
+    </div>
+    <div style="margin:10px 0; color:#bbb; font-size:1.4rem;">↓ &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; ↑</div>
+    <div class="flow-row">
+      <span class="fbox f-pause">onPause()</span>
+      <span class="farrow">→</span>
+      <span class="fbox f-stop">onStop()</span>
+      <span class="farrow">→</span>
+      <span class="fbox f-restart">onRestart()</span>
+    </div>
+    <div style="margin:10px 0; color:#bbb; font-size:1.4rem;">↓</div>
+    <div class="flow-row">
+      <span class="fbox f-destroy">onDestroy()</span>
+    </div>
+    <p style="margin-top:14px; font-size:0.8rem; color:#999;">
+      Launch path: onCreate → onStart → onResume<br>
+      Background path: onPause → onStop<br>
+      Return path: onRestart → onStart → onResume<br>
+      Close path: onPause → onStop → onDestroy
+    </p>
+  </div>
+
+  <!-- THE 7 METHODS -->
+  <h2>The 7 Lifecycle Methods</h2>
+
+  <div class="method-card create">
+    <div class="method-name">onCreate(Bundle savedInstanceState)</div>
+    <div class="trigger">Fires once — when the Activity is first created.</div>
+    <p>
+      This is where all setup happens: loading the layout with <code>setContentView()</code>,
+      finding views with <code>findViewById()</code>, and wiring up button listeners.
+      The <code>Bundle</code> parameter holds any previously saved state (e.g. from a screen
+      rotation); it is <code>null</code> on first launch.
+    </p>
+    <p>After this method returns, <code>onStart()</code> is always called next.</p>
+  </div>
+
+  <div class="method-card start">
+    <div class="method-name">onStart()</div>
+    <div class="trigger">Fires when the Activity is about to become visible to the user.</div>
+    <p>
+      The Activity is not yet interactive — the user cannot tap anything yet. This is a good
+      place to start animations or register for updates that need to be reflected on screen.
+      It is called both on first launch (after <code>onCreate</code>) and when returning
+      from a stopped state (after <code>onRestart</code>).
+    </p>
+  </div>
+
+  <div class="method-card resume">
+    <div class="method-name">onResume()</div>
+    <div class="trigger">Fires when the Activity is fully visible and interactive.</div>
+    <p>
+      This is the running state — the user can see and touch the screen. The camera, sensors,
+      or any resource that should only run while the app is in front of the user should be
+      started here. Everything started in <code>onResume</code> should be stopped in
+      <code>onPause</code>.
+    </p>
+  </div>
+
+  <div class="method-card pause">
+    <div class="method-name">onPause()</div>
+    <div class="trigger">Fires when another Activity is coming to the foreground.</div>
+    <p>
+      The Activity is still partially visible (for example, a dialog or a translucent Activity
+      is in front). This method must run fast — Android will not move on to the next Activity
+      until it returns. Use it to pause animations and save anything that must be persisted
+      immediately. Do not do heavy work here.
+    </p>
+    <p>
+      If the user returns to the Activity, <code>onResume</code> is called. If the user navigates
+      further away, <code>onStop</code> follows.
+    </p>
+  </div>
+
+  <div class="method-card stop">
+    <div class="method-name">onStop()</div>
+    <div class="trigger">Fires when the Activity is completely hidden from the user.</div>
+    <p>
+      The user has either switched to another app, pressed Home, or opened a new full-screen
+      Activity on top. The Activity is no longer visible at all. This is where you release
+      resources that are not needed while the app is in the background — unregister broadcast
+      receivers, stop music playback, save data to a database.
+    </p>
+    <p>
+      The Activity object still exists in memory. If the user comes back, <code>onRestart</code>
+      is called. If the system needs memory or the user presses Back, <code>onDestroy</code> follows.
+    </p>
+  </div>
+
+  <div class="method-card restart">
+    <div class="method-name">onRestart()</div>
+    <div class="trigger">Fires when a stopped Activity is about to come back to the screen.</div>
+    <p>
+      This method is unique — it only fires when an Activity is coming back from a
+      <em>stopped</em> state, not from a destroyed state. It is always followed immediately
+      by <code>onStart()</code>. Use it to refresh data that may have changed while the
+      app was in the background.
+    </p>
+  </div>
+
+  <div class="method-card destroy">
+    <div class="method-name">onDestroy()</div>
+    <div class="trigger">Fires when the Activity is being permanently removed.</div>
+    <p>
+      This happens when the user presses Back, when <code>finish()</code> is called in code,
+      or when the system kills the Activity to free memory. After this method the Activity object
+      is gone. Release any remaining resources — close database connections, cancel network
+      requests, stop threads.
+    </p>
+    <p>
+      Note: this is not guaranteed to be called if the system kills the process forcefully.
+      Never rely on it as the only place to save critical data — use <code>onPause</code> or
+      <code>onStop</code> for that.
+    </p>
+  </div>
+
+  <!-- THE CODE -->
+  <h2>How It Looks in Code</h2>
+  <p>
+    Each lifecycle method is overridden in the Activity class. The <code>@Override</code>
+    annotation marks that we are replacing a method from the parent class
+    (<code>AppCompatActivity</code>). The first line inside every override must be a call to
+    <code>super.onXxx()</code> so that the Android framework can do its own internal work first.
+    Our logic goes after that.
+  </p>
+  <p>
+    In this app, each method calls a private <code>log()</code> helper that appends a line to
+    the on-screen log, and shows a <code>Toast</code> pop-up so the event is visible immediately.
+  </p>
+
+  <div class="code-card">
+    <div class="code-header">MainActivity.java — lifecycle methods</div>
+    <pre><code><span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onCreate</span>(<span class="cl">Bundle</span> savedInstanceState) {
+    <span class="kw">super</span>.<span class="mt">onCreate</span>(savedInstanceState);
+    <span class="mt">setContentView</span>(R.layout.activity_main);
+    <span class="cm">// view setup and button wiring happens here</span>
+    <span class="mt">log</span>(<span class="st">"onCreate"</span>, <span class="st">"Activity is being created"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onCreate: Activity created"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onStart</span>() {
+    <span class="kw">super</span>.<span class="mt">onStart</span>();
+    <span class="mt">log</span>(<span class="st">"onStart"</span>, <span class="st">"Activity is becoming visible"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onStart: Activity visible"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onResume</span>() {
+    <span class="kw">super</span>.<span class="mt">onResume</span>();
+    <span class="mt">log</span>(<span class="st">"onResume"</span>, <span class="st">"Activity is in the foreground"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onResume: Activity in foreground"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onPause</span>() {
+    <span class="kw">super</span>.<span class="mt">onPause</span>();
+    <span class="mt">log</span>(<span class="st">"onPause"</span>, <span class="st">"Activity is partially hidden"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onPause: Activity partially hidden"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onStop</span>() {
+    <span class="kw">super</span>.<span class="mt">onStop</span>();
+    <span class="mt">log</span>(<span class="st">"onStop"</span>, <span class="st">"Activity is no longer visible"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onStop: Activity not visible"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onRestart</span>() {
+    <span class="kw">super</span>.<span class="mt">onRestart</span>();
+    <span class="mt">log</span>(<span class="st">"onRestart"</span>, <span class="st">"Activity is restarting after being stopped"</span>);
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onRestart: Activity restarting"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}
+
+<span class="an">@Override</span>
+<span class="kw">protected void</span> <span class="mt">onDestroy</span>() {
+    <span class="kw">super</span>.<span class="mt">onDestroy</span>();
+    <span class="cl">Toast</span>.<span class="mt">makeText</span>(<span class="kw">this</span>, <span class="st">"onDestroy: Activity is destroyed"</span>, <span class="cl">Toast</span>.LENGTH_SHORT).<span class="mt">show</span>();
+}</code></pre>
+  </div>
+
+  <div class="note">
+    <strong>Why super.onXxx() must come first:</strong> the parent class does critical internal
+    work inside these methods — attaching windows, managing fragments, restoring state. Calling
+    your own code before <code>super</code> means that infrastructure hasn't been set up yet,
+    which can cause crashes or broken behaviour.
+  </div>
+
+  <!-- SCENARIOS -->
+  <h2>What Fires in Each Situation</h2>
+
+  <div class="scenario">
+    <h3>App launched for the first time</h3>
+    <div class="steps">
+      <span class="step s-create">onCreate</span>
+      <span class="sarrow">→</span>
+      <span class="step s-start">onStart</span>
+      <span class="sarrow">→</span>
+      <span class="step s-resume">onResume</span>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>User opens another app or presses Home</h3>
+    <div class="steps">
+      <span class="step s-pause">onPause</span>
+      <span class="sarrow">→</span>
+      <span class="step s-stop">onStop</span>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>User comes back to the app after pressing Home</h3>
+    <div class="steps">
+      <span class="step s-restart">onRestart</span>
+      <span class="sarrow">→</span>
+      <span class="step s-start">onStart</span>
+      <span class="sarrow">→</span>
+      <span class="step s-resume">onResume</span>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>User presses Back / finish() is called</h3>
+    <div class="steps">
+      <span class="step s-pause">onPause</span>
+      <span class="sarrow">→</span>
+      <span class="step s-stop">onStop</span>
+      <span class="sarrow">→</span>
+      <span class="step s-destroy">onDestroy</span>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>A dialog or translucent Activity appears on top</h3>
+    <div class="steps">
+      <span class="step s-pause">onPause</span>
+      <span class="sarrow">— Activity is still partially visible, onStop does NOT fire</span>
+    </div>
+  </div>
+
+  <div class="scenario">
+    <h3>Screen is rotated</h3>
+    <div class="steps">
+      <span class="step s-pause">onPause</span>
+      <span class="sarrow">→</span>
+      <span class="step s-stop">onStop</span>
+      <span class="sarrow">→</span>
+      <span class="step s-destroy">onDestroy</span>
+      <span class="sarrow">→</span>
+      <span class="step s-create">onCreate</span>
+      <span class="sarrow">→</span>
+      <span class="step s-start">onStart</span>
+      <span class="sarrow">→</span>
+      <span class="step s-resume">onResume</span>
+    </div>
+    <p style="margin-top:10px; font-size:0.85rem; color:#666;">
+      Android destroys and recreates the Activity on rotation so the layout can be reloaded
+      for the new orientation. The <code>Bundle savedInstanceState</code> in
+      <code>onCreate</code> is how data survives this.
+    </p>
+  </div>
+
+</div>
+
+<footer>
+  Activity Lifecycle Report &nbsp;|&nbsp; Android Java &nbsp;|&nbsp; June 2026
+</footer>
+
+</body>
+</html>

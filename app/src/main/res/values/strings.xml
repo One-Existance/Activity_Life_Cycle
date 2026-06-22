@@ -1,0 +1,11 @@
+<resources>
+    <string name="app_name">Activity Life Cycle</string>
+    <string name="btn_open_second">Open Second Activity</string>
+    <string name="btn_finish">Finish Activity (onDestroy)</string>
+    <string name="btn_clear_log">Clear Log</string>
+    <string name="label_lifecycle_log">Lifecycle Log:</string>
+    <string name="log_placeholder">(events will appear here)\n</string>
+    <string name="title_second_activity">Second Activity</string>
+    <string name="btn_go_back">Go Back</string>
+    <string name="toast_second_opened">SecondActivity opened — MainActivity is stopped</string>
+</resources>
