@@ -9,19 +9,22 @@
         android:id="@+id/btnOpenSecond"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/btn_open_second" />
+        android:text="@string/btn_open_second"
+        android:backgroundTint="@color/btn_open_second" />
 
     <Button
         android:id="@+id/btnFinish"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/btn_finish" />
+        android:text="@string/btn_finish"
+        android:backgroundTint="@color/btn_finish" />
 
     <Button
         android:id="@+id/btnClearLog"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="@string/btn_clear_log" />
+        android:text="@string/btn_clear_log"
+        android:backgroundTint="@color/btn_clear_log" />
 
     <TextView
         android:layout_width="match_parent"

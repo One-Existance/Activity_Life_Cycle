@@ -17,6 +17,7 @@
         android:id="@+id/btnGoBack"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="@string/btn_go_back" />
+        android:text="@string/btn_go_back"
+        android:backgroundTint="@color/btn_go_back" />
 
 </LinearLayout>

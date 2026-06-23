@@ -2,4 +2,9 @@
 <resources>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <color name="btn_open_second">#0A620D</color>
+    <color name="btn_finish">#FFFF6F00</color>
+    <color name="btn_clear_log">#FFB71C1C</color>
+    <color name="btn_go_back">#FF6A1B9A</color>
 </resources>
