@@ -47,15 +47,15 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        log("onResume", "Activity is in the foreground");
-        Toast.makeText(this, "onResume: Activity in foreground", Toast.LENGTH_SHORT).show();
+        log("onResume", "Returning to the app — activity is interactive again");
+        Toast.makeText(this, "onResume: Back to foreground", Toast.LENGTH_SHORT).show();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        log("onPause", "Activity is partially hidden");
-        Toast.makeText(this, "onPause: Activity partially hidden", Toast.LENGTH_SHORT).show();
+        log("onPause", "Briefly leaving the app — activity loses focus");
+        Toast.makeText(this, "onPause: Briefly leaving the app", Toast.LENGTH_SHORT).show();
     }
 
     @Override
@@ -75,7 +75,8 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Toast.makeText(this, "onDestroy: Activity is destroyed", Toast.LENGTH_SHORT).show();
+        log("onDestroy", "Activity is being destroyed and removed from memory");
+        Toast.makeText(this, "onDestroy: Activity destroyed", Toast.LENGTH_SHORT).show();
     }
 
     private void log(String method, String description) {
