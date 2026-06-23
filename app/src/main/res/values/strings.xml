@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">Activity Life Cycle</string>
     <string name="btn_open_second">Open Second Activity</string>
-    <string name="btn_finish">Pause Activity</string>
+    <string name="btn_finish">Finish Activity</string>
     <string name="btn_clear_log">Clear Log</string>
     <string name="label_lifecycle_log">Lifecycle Log:</string>
     <string name="log_placeholder">(events will appear here)\n</string>
